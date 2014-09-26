@@ -1,0 +1,6 @@
+{
+	"name": "default_request",
+	"description": "The default request plugin for oauthd.",
+	"version": "0.0.1",
+	"main": "index.js"
+}
