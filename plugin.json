@@ -1,6 +1,4 @@
 {
 	"name": "request",
-	"description": "The default request plugin for oauthd.",
-	"version": "0.0.1",
-	"main": "index.js"
+	"description": "Request allows you to perform API calls through oauthd easily."
 }
