@@ -19,6 +19,15 @@ qs = require 'querystring'
 Url = require 'url'
 restify = require 'restify'
 request = require 'request'
+qs = require 'querystring'
+
+furtherEncodeUri = (string) ->
+	string = string.replace('!','%21')
+	string = string.replace('*','%2A')
+	string = string.replace('(','%28')
+	string = string.replace(')','%29')
+	string = string.replace("'",'%27')
+	return string
 
 module.exports = (env) ->
 
@@ -96,7 +105,8 @@ module.exports = (env) ->
 				if req.headers['content-type'] and req.headers['content-type'].indexOf('application/x-www-form-urlencoded') != -1
 					bodyParser = restify.bodyParser mapParams:false
 					bodyParser[0] req, res, -> bodyParser[1] req, res, ->
-						options.form = req.body
+						options.headers['Content-type'] = 'application/x-www-form-urlencoded'
+						options.body = furtherEncodeUri(qs.stringify req.body)
 						delete options.headers['Content-Length']
 						api_request = request options
 						sendres()

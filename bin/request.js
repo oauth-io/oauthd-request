@@ -1,4 +1,4 @@
-var Url, async, qs, request, restify;
+var Url, async, furtherEncodeUri, qs, request, restify;
 
 async = require('async');
 
@@ -9,6 +9,17 @@ Url = require('url');
 restify = require('restify');
 
 request = require('request');
+
+qs = require('querystring');
+
+furtherEncodeUri = function(string) {
+  string = string.replace('!', '%21');
+  string = string.replace('*', '%2A');
+  string = string.replace('(', '%28');
+  string = string.replace(')', '%29');
+  string = string.replace("'", '%27');
+  return string;
+};
 
 module.exports = function(env) {
   var exp, oauth;
@@ -114,7 +125,8 @@ module.exports = function(env) {
             });
             return bodyParser[0](req, res, function() {
               return bodyParser[1](req, res, function() {
-                options.form = req.body;
+                options.headers['Content-type'] = 'application/x-www-form-urlencoded';
+                options.body = furtherEncodeUri(qs.stringify(req.body));
                 delete options.headers['Content-Length'];
                 api_request = request(options);
                 return sendres();
