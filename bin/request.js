@@ -10,19 +10,17 @@ restify = require('restify');
 
 request = require('request');
 
-qs = require('querystring');
-
 furtherEncodeUri = function(string) {
-  string = string.replace('!', '%21');
-  string = string.replace('*', '%2A');
-  string = string.replace('(', '%28');
-  string = string.replace(')', '%29');
-  string = string.replace("'", '%27');
+  string = string.replace(/\!/g, '%21');
+  string = string.replace(/\*/g, '%2A');
+  string = string.replace(/\(/g, '%28');
+  string = string.replace(/\)/g, '%29');
+  string = string.replace(/\'/g, '%27');
   return string;
 };
 
 module.exports = function(env) {
-  var exp, oauth;
+  var exp, fixUrl, oauth;
   oauth = env.utilities.oauth;
   exp = {};
   exp.apiRequest = (function(_this) {
@@ -65,8 +63,57 @@ module.exports = function(env) {
       });
     };
   })(this);
+  fixUrl = function(ref) {
+    return ref.replace(/^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2');
+  };
+  env.middlewares.request = {};
+  env.middlewares.request.credentialsNeeded = function(req, res, next) {
+    var oauthio, origin, ref, urlinfos;
+    oauthio = qs.parse(req.headers.oauthio);
+    req.headers.oauthio = qs.parse(req.headers.oauthio);
+    if (!oauthio) {
+      return res.send(new env.utilities.check.Error("You must provide a valid 'oauthio' http header"));
+    }
+    oauthio = qs.parse(oauthio);
+    if (!oauthio.k) {
+      return res.send(new env.utilities.check.Error("oauthio_key", "You must provide a 'k' (key) in 'oauthio' header"));
+    }
+    origin = null;
+    ref = fixUrl(req.headers['referer'] || req.headers['origin'] || "http://localhost");
+    urlinfos = Url.parse(ref);
+    if (!urlinfos.hostname) {
+      ref = origin = "http://localhost";
+    } else {
+      origin = urlinfos.protocol + '//' + urlinfos.host;
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+    return next();
+  };
+  exp.allowOriginAndMethods = function(url) {
+    return env.server.opts(url, function(req, res, next) {
+      var origin, ref, urlinfos;
+      origin = null;
+      ref = fixUrl(req.headers['referer'] || req.headers['origin'] || "http://localhost");
+      urlinfos = Url.parse(ref);
+      if (!urlinfos.hostname) {
+        return next(new restify.InvalidHeaderError('Missing origin or referer.'));
+      }
+      origin = urlinfos.protocol + '//' + urlinfos.host;
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+      if (req.headers['access-control-request-headers']) {
+        res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers']);
+      }
+      res.cache({
+        maxAge: 120
+      });
+      res.send(200);
+      return next(false);
+    });
+  };
   exp.raw = function() {
-    var doRequest, fixUrl;
+    var doRequest;
     fixUrl = function(ref) {
       return ref.replace(/^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2');
     };

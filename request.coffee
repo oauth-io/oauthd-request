@@ -19,14 +19,13 @@ qs = require 'querystring'
 Url = require 'url'
 restify = require 'restify'
 request = require 'request'
-qs = require 'querystring'
 
 furtherEncodeUri = (string) ->
-	string = string.replace('!','%21')
-	string = string.replace('*','%2A')
-	string = string.replace('(','%28')
-	string = string.replace(')','%29')
-	string = string.replace("'",'%27')
+	string = string.replace /\!/g, '%21'
+	string = string.replace /\*/g, '%2A'
+	string = string.replace /\(/g, '%28'
+	string = string.replace /\)/g, '%29'
+	string = string.replace /\'/g, '%27'
 	return string
 
 module.exports = (env) ->
@@ -60,6 +59,51 @@ module.exports = (env) ->
 			# let oauth modules do the request
 			oa = new oauth[oauthv](provider, parameters)
 			oa.request req, callback
+
+	fixUrl = (ref) -> ref.replace /^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2'
+	env.middlewares.request = {}
+
+	env.middlewares.request.credentialsNeeded = (req, res, next) ->
+
+		oauthio = qs.parse req.headers.oauthio
+		req.headers.oauthio = qs.parse req.headers.oauthio
+
+		if ! oauthio
+			return res.send new env.utilities.check.Error "You must provide a valid 'oauthio' http header"
+		oauthio = qs.parse(oauthio)
+		if ! oauthio.k
+			return res.send new env.utilities.check.Error "oauthio_key", "You must provide a 'k' (key) in 'oauthio' header"
+
+		origin = null
+		ref = fixUrl(req.headers['referer'] || req.headers['origin'] || "http://localhost");
+		urlinfos = Url.parse(ref)
+		if not urlinfos.hostname
+			ref = origin = "http://localhost"
+		else
+			origin = urlinfos.protocol + '//' + urlinfos.host
+		res.setHeader 'Access-Control-Allow-Origin', origin
+		res.setHeader 'Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE'
+
+		next()
+
+	exp.allowOriginAndMethods = (url) ->
+		env.server.opts url, (req, res, next) ->
+			origin = null
+			ref = fixUrl(req.headers['referer'] || req.headers['origin'] || "http://localhost");
+			urlinfos = Url.parse(ref)
+			if not urlinfos.hostname
+				return next new restify.InvalidHeaderError 'Missing origin or referer.'
+			origin = urlinfos.protocol + '//' + urlinfos.host
+
+			res.setHeader 'Access-Control-Allow-Origin', origin
+			res.setHeader 'Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE'
+			if req.headers['access-control-request-headers']
+				res.setHeader 'Access-Control-Allow-Headers', req.headers['access-control-request-headers']
+			res.cache maxAge: 120
+
+			res.send 200
+			next false
+
 	exp.raw = ->
 
 		fixUrl = (ref) -> ref.replace /^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2'
@@ -116,6 +160,7 @@ module.exports = (env) ->
 					api_request = req.pipe(api_request)
 					sendres()
 
+		
 
 		# request's endpoints
 		env.server.opts new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), (req, res, next) ->
