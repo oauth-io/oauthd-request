@@ -58,6 +58,10 @@ module.exports = function(env) {
           }
         }
         parameters.oauthio = oauthio;
+        env.events.emit('request', {
+          provider: provider_name,
+          key: oauthio.k
+        });
         oa = new oauth[oauthv](provider, parameters);
         return oa.request(req, callback);
       });
@@ -151,10 +155,6 @@ module.exports = function(env) {
           if (err) {
             return cb(err);
           }
-          env.events.emit('request', {
-            provider: req.params[0],
-            key: oauthio.k
-          });
           api_request = null;
           sendres = function() {
             api_request.pipefilter = function(response, dest) {

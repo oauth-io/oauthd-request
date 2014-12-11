@@ -56,6 +56,8 @@ module.exports = (env) ->
 
 			parameters.oauthio = oauthio
 
+			env.events.emit 'request', provider:provider_name, key:oauthio.k
+
 			# let oauth modules do the request
 			oa = new oauth[oauthv](provider, parameters)
 			oa.request req, callback
@@ -134,8 +136,6 @@ module.exports = (env) ->
 
 			exp.apiRequest req, req.params[0], oauthio, (err, options) =>
 				return cb err if err
-
-				env.events.emit 'request', provider:req.params[0], key:oauthio.k
 
 				api_request = null
 
