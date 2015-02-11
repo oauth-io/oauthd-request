@@ -181,7 +181,7 @@ module.exports = function(env) {
             });
           } else {
             api_request = request(options);
-            delete req.headers;
+            req.headers = {};
             api_request = req.pipe(api_request);
             return sendres();
           }

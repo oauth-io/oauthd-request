@@ -111,6 +111,7 @@ module.exports = (env) ->
 		fixUrl = (ref) -> ref.replace /^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2'
 
 		doRequest = (req, res, next) =>
+
 			cb = env.server.send(res, next)
 			oauthio = req.headers.oauthio
 			if ! oauthio
@@ -156,11 +157,11 @@ module.exports = (env) ->
 						sendres()
 				else
 					api_request = request options
-					delete req.headers
+					req.headers = {}
 					api_request = req.pipe(api_request)
 					sendres()
 
-		
+
 
 		# request's endpoints
 		env.server.opts new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), (req, res, next) ->
