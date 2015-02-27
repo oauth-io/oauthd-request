@@ -146,12 +146,20 @@ module.exports = (env) ->
 						dest.setHeader 'Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE'
 					api_request.pipe(res)
 					api_request.once 'end', -> next false
-
-				if req.headers['content-type'] and req.headers['content-type'].indexOf('application/x-www-form-urlencoded') != -1
+				content_type = req.headers['content-type']
+				if req.headers['content-type']? and req.headers['content-type'].indexOf('application/x-www-form-urlencoded') != -1
 					bodyParser = restify.bodyParser mapParams:false
 					bodyParser[0] req, res, -> bodyParser[1] req, res, ->
 						options.headers['Content-type'] = 'application/x-www-form-urlencoded'
 						options.body = furtherEncodeUri(qs.stringify req.body)
+						delete options.headers['Content-Length']
+						api_request = request options
+						sendres()
+				else if req.headers['content-type']? and req.headers['content-type'].indexOf('application/json') != -1
+					bodyParser = restify.bodyParser mapParams:false
+					bodyParser[0] req, res, -> bodyParser[1] req, res, ->
+						options.headers['Content-Type'] = content_type
+						options.body = JSON.stringify(req.body)
 						delete options.headers['Content-Length']
 						api_request = request options
 						sendres()
