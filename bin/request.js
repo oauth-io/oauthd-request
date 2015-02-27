@@ -144,7 +144,7 @@ module.exports = function(env) {
           }
         });
         return exp.apiRequest(req, req.params[0], oauthio, function(err, options) {
-          var api_request, bodyParser, sendres;
+          var api_request, bodyParser, content_type, sendres;
           if (err) {
             return cb(err);
           }
@@ -159,7 +159,8 @@ module.exports = function(env) {
               return next(false);
             });
           };
-          if (req.headers['content-type'] && req.headers['content-type'].indexOf('application/x-www-form-urlencoded') !== -1) {
+          content_type = req.headers['content-type'];
+          if ((req.headers['content-type'] != null) && req.headers['content-type'].indexOf('application/x-www-form-urlencoded') !== -1) {
             bodyParser = restify.bodyParser({
               mapParams: false
             });
@@ -171,9 +172,22 @@ module.exports = function(env) {
                 return sendres();
               });
             });
+          } else if ((req.headers['content-type'] != null) && req.headers['content-type'].indexOf('application/json') !== -1) {
+            bodyParser = restify.bodyParser({
+              mapParams: false
+            });
+            return bodyParser[0](req, res, function() {
+              return bodyParser[1](req, res, function() {
+                options.headers['Content-Type'] = content_type;
+                options.body = JSON.stringify(req.body);
+                delete options.headers['Content-Length'];
+                api_request = request(options);
+                return sendres();
+              });
+            });
           } else {
             api_request = request(options);
-            delete req.headers;
+            req.headers = {};
             api_request = req.pipe(api_request);
             return sendres();
           }
