@@ -29,7 +29,23 @@ furtherEncodeUri = (string) ->
 	return string
 
 module.exports = (env) ->
+	env.middlewares.request = {}
+	env.middlewares.request.all = []
+	# Chain of middlewares that are applied to each Request endpoints
+	createMiddlewareChain = () ->
+		(req, res, next) ->
+			chain = []
+			i = 0
+			for k, middleware of env.middlewares.request.all
+				do (middleware) ->
+					chain.push (callback) ->
+						middleware req, res, callback
+			if chain.length == 0
+				return next()
+			async.waterfall chain, () ->
+				next()
 
+	middlewares_request_chain = createMiddlewareChain()
 
 	oauth = env.utilities.oauth
 
@@ -63,7 +79,6 @@ module.exports = (env) ->
 			oa.request req, callback
 
 	fixUrl = (ref) -> ref.replace /^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2'
-	env.middlewares.request = {}
 
 	env.middlewares.request.credentialsNeeded = (req, res, next) ->
 
@@ -189,9 +204,9 @@ module.exports = (env) ->
 			res.send 200
 			next false
 
-		env.server.get new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest
-		env.server.post new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest
-		env.server.put new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest
-		env.server.patch new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest
-		env.server.del new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest
+		env.server.get new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest
+		env.server.post new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest
+		env.server.put new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest
+		env.server.patch new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest
+		env.server.del new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest
 	exp
