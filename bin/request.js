@@ -13,7 +13,33 @@ request = require('request');
 qs = require('qs');
 
 module.exports = function(env) {
-  var exp, fixUrl, oauth;
+  var createMiddlewareChain, exp, fixUrl, middlewares_request_chain, oauth;
+  env.middlewares.request = {};
+  env.middlewares.request.all = [];
+  createMiddlewareChain = function() {
+    return function(req, res, next) {
+      var chain, i, k, middleware, _fn, _ref;
+      chain = [];
+      i = 0;
+      _ref = env.middlewares.request.all;
+      _fn = function(middleware) {
+        return chain.push(function(callback) {
+          return middleware(req, res, callback);
+        });
+      };
+      for (k in _ref) {
+        middleware = _ref[k];
+        _fn(middleware);
+      }
+      if (chain.length === 0) {
+        return next();
+      }
+      return async.waterfall(chain, function() {
+        return next();
+      });
+    };
+  };
+  middlewares_request_chain = createMiddlewareChain();
   oauth = env.utilities.oauth;
   exp = {};
   exp.apiRequest = (function(_this) {
@@ -63,7 +89,6 @@ module.exports = function(env) {
   fixUrl = function(ref) {
     return ref.replace(/^([a-zA-Z\-_]+:\/)([^\/])/, '$1/$2');
   };
-  env.middlewares.request = {};
   env.middlewares.request.credentialsNeeded = function(req, res, next) {
     var oauthio, origin, ref, urlinfos;
     oauthio = qs.parse(req.headers.oauthio);
@@ -214,11 +239,11 @@ module.exports = function(env) {
       res.send(200);
       return next(false);
     });
-    env.server.get(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest);
-    env.server.post(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest);
-    env.server.put(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest);
-    env.server.patch(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest);
-    return env.server.del(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), doRequest);
+    env.server.get(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest);
+    env.server.post(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest);
+    env.server.put(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest);
+    env.server.patch(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest);
+    return env.server.del(new RegExp('^/request/([a-zA-Z0-9_\\.~-]+)/(.*)$'), middlewares_request_chain, doRequest);
   };
   return exp;
 };
