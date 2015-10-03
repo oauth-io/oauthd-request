@@ -144,7 +144,8 @@ module.exports = (env) ->
 
 			exp.apiRequest req, req.params[0], oauthio, (err, options) =>
 				return cb err if err
-
+				delete options.headers["Cookie"]
+				delete options.headers["X-Requested-With"]
 				api_request = null
 
 				sendres = ->
