@@ -180,6 +180,8 @@ module.exports = function(env) {
           if (err) {
             return cb(err);
           }
+          delete options.headers["Cookie"];
+          delete options.headers["X-Requested-With"];
           api_request = null;
           sendres = function() {
             api_request.pipefilter = function(response, dest) {
