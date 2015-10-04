@@ -25,18 +25,18 @@ module.exports = function(env) {
   env.middlewares.request.all = [];
   createMiddlewareChain = function() {
     return function(req, res, next) {
-      var chain, i, k, middleware, _fn, _ref;
+      var chain, fn, i, k, middleware, ref1;
       chain = [];
       i = 0;
-      _ref = env.middlewares.request.all;
-      _fn = function(middleware) {
+      ref1 = env.middlewares.request.all;
+      fn = function(middleware) {
         return chain.push(function(callback) {
           return middleware(req, res, callback);
         });
       };
-      for (k in _ref) {
-        middleware = _ref[k];
-        _fn(middleware);
+      for (k in ref1) {
+        middleware = ref1[k];
+        fn(middleware);
       }
       if (chain.length === 0) {
         return next();
@@ -61,11 +61,11 @@ module.exports = function(env) {
           return env.data.apps.getKeyset(oauthio.k, provider_name, callback);
         }
       ], function(err, results) {
-        var oa, oauthv, parameters, provider, _ref;
+        var oa, oauthv, parameters, provider, ref1;
         if (err) {
           return callback(err);
         }
-        provider = results[0], (_ref = results[1], parameters = _ref.parameters);
+        provider = results[0], (ref1 = results[1], parameters = ref1.parameters);
         oauthv = oauthio.oauthv && {
           "2": "oauth2",
           "1": "oauth1"
