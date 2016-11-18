@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 async = require 'async'
-qs = require 'querystring'
+qs = require 'qs'
 Url = require 'url'
 restify = require 'restify'
 request = require 'request'

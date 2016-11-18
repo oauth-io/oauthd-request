@@ -2,7 +2,7 @@ var Url, async, furtherEncodeUri, qs, request, restify;
 
 async = require('async');
 
-qs = require('querystring');
+qs = require('qs');
 
 Url = require('url');
 
